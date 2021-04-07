@@ -1,4 +1,5 @@
 import 'package:audioplayers/audioplayers.dart';
+import 'package:finstants/components/instant_tile_component.dart';
 import 'package:finstants/models/instant_model.dart';
 import 'package:finstants/services/my_instants_service.dart';
 import 'package:flutter/material.dart';
@@ -14,7 +15,7 @@ class _MyScaffoldState extends State<MyScaffold> {
   final service = MyInstantsService();
   final audioPlayer = AudioPlayer();
   final controller = ScrollController();
-  String playingSlug = "";
+  InstantModel? playing;
   int page = 1;
   bool isLoading = true;
 
@@ -23,14 +24,13 @@ class _MyScaffoldState extends State<MyScaffold> {
     fetch();
     controller.addListener(() {
       if (controller.offset == controller.position.maxScrollExtent) {
-        page++;
         fetch();
       }
     });
     super.initState();
 
     audioPlayer.onPlayerCompletion
-        .listen((event) => setState(() => playingSlug = ""));
+        .listen((event) => setState(() => playing = null));
   }
 
   fetch() async {
@@ -38,8 +38,13 @@ class _MyScaffoldState extends State<MyScaffold> {
     setState(() {
       isLoading = true;
     });
-    final res = await service.getTrending(page);
+
+    var res = await service.getTrending(page);
     data = [...data, ...res];
+    page++;
+    res = await service.getTrending(page);
+    data = [...data, ...res];
+    page++;
     setState(() {
       isLoading = false;
     });
@@ -50,17 +55,9 @@ class _MyScaffoldState extends State<MyScaffold> {
     return Scaffold(
       appBar: AppBar(
         title: Text("Trending"),
+        centerTitle: true,
         brightness: Brightness.dark,
         elevation: 0,
-        actions: [
-          IconButton(
-              icon: Icon(Icons.refresh),
-              onPressed: () async {
-                final res = await service.getTrending(page);
-                data = res;
-                setState(() {});
-              })
-        ],
       ),
       body: Column(
         children: [
@@ -70,42 +67,51 @@ class _MyScaffoldState extends State<MyScaffold> {
               controller: controller,
               children: [
                 ...data
-                    .map(
-                      (e) => ListTile(
-                        title: Text(e.name ?? "Unknown"),
-                        subtitle: Text(e.slug ?? " - "),
-                        leading: CircleAvatar(
-                          child: Icon(
-                            Icons.circle,
-                            size: 37,
-                            color: e.getColor(),
-                          ),
-                          backgroundColor: e.getColor().withOpacity(.4),
-                        ),
-                        trailing: IconButton(
-                          icon: Icon(playingSlug == e.slug
-                              ? Icons.pause
-                              : Icons.play_arrow),
-                          onPressed: () async {
+                    .map((e) => InstantTileComponent(
+                          instant: e,
+                          isPlaying: playing?.slug == e.slug,
+                          onPlay: () async {
+
+                            if(playing?.slug == e.slug) {
+                              audioPlayer.stop();
+                              playing = null;
+                              setState(() {
+                                
+                              });
+                              return;
+                            }
+                            
+
                             final played = await audioPlayer.play(
-                              "${e.sound}".replaceFirst("http", "https"),
+                              "${e.sound}"
                             );
                             if (played == 1) {
                               setState(() {
-                                playingSlug = e.slug ?? "";
+                                playing = e;
                               });
                             }
                           },
-                        ),
-                        onTap: () {},
-                      ),
-                    )
-                    .toSet()
+                          onTap: () {},
+                        ))
+                    .toList()
               ],
             ),
           ),
         ],
       ),
+      bottomSheet: playing != null ? Container(
+        padding: const EdgeInsets.all(6),
+        color: playing?.getColor(),
+        child: Row(
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(left: 10, right: 10),
+              child: Icon(Icons.music_note, color: ((playing?.getColor().computeLuminance() ?? 0) >= 0.6) ? Colors.black :Colors.white, ),
+            ),
+            Text(playing?.name ?? "None", style: TextStyle(color: ((playing?.getColor().computeLuminance() ?? 0) >= 0.6) ? Colors.black :Colors.white,),)
+          ],
+        ),
+      ): null,
       bottomNavigationBar: BottomNavigationBar(
         items: [
           BottomNavigationBarItem(

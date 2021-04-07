@@ -17,8 +17,12 @@ class MyApp extends StatelessWidget {
       ),
       darkTheme: ThemeData.dark().copyWith(
         accentColor: Colors.white,
+        appBarTheme: AppBarTheme(
+          backgroundColor: Color.fromARGB(255, 25, 25, 25)
+        ),
+        scaffoldBackgroundColor: Color.fromARGB(255, 15, 15, 15),
         bottomNavigationBarTheme: BottomNavigationBarThemeData(
-          backgroundColor: Color.fromARGB(255, 15, 15, 15),
+          backgroundColor: Color.fromARGB(255, 25, 25, 25),
           elevation: 0
         )
       ),

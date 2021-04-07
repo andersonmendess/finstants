@@ -22,7 +22,7 @@ class InstantModel {
   InstantModel.fromJSON(Map<String, dynamic> json) {
     name = json['name'];
     slug = json['slug'];
-    sound = json['sound'];
+    sound = json['sound'].replaceFirst("http", "https");
     color = json['color'];
     image = json['image'];
     description = json['description'];
